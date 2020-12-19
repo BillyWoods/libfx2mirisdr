@@ -1,4 +1,4 @@
-AC_INIT([libmirisdr],
+AC_INIT([libfx2mirisdr],
         m4_esyscmd([./git-version-gen .tarball-version]),
         [osmocom-sdr@lists.osmocom.org])
 
@@ -28,8 +28,8 @@ AC_HEADER_STDC
 AC_CHECK_HEADERS(sys/types.h)
 
 # pc variables
-AC_SUBST(MIRISDR_PC_LIBS,["$LIBS"])
-AC_SUBST(MIRISDR_PC_CFLAGS,["$CFLAGS"])
+AC_SUBST(FX2MIRISDR_PC_LIBS,["$LIBS"])
+AC_SUBST(FX2MIRISDR_PC_CFLAGS,["$CFLAGS"])
 
 # The following test is taken from WebKit's webkit.m4
 saved_CFLAGS="$CFLAGS"
@@ -54,7 +54,7 @@ dnl Generate the output
 AC_CONFIG_HEADER(config.h)
 
 AC_OUTPUT(
-	libmirisdr.pc
+	libfx2mirisdr.pc
 	include/Makefile
 	src/Makefile
 	Makefile

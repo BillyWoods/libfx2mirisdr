@@ -45,11 +45,11 @@
 #define LIBUSB_CALL
 #endif
 
-#include "mirisdr.h"
-#include "mirisdr_reg.h"
+#include "fx2mirisdr.h"
+#include "fx2mirisdr_reg.h"
 #include "tuner_msi001.h"
 
-typedef struct mirisdr_tuner {
+typedef struct fx2mirisdr_tuner {
 	/* tuner interface */
 	int (*init)(void *);
 	int (*exit)(void *);
@@ -57,15 +57,15 @@ typedef struct mirisdr_tuner {
 	int (*set_bw)(void *, int bw /* Hz */);
 	int (*set_gain)(void *, int gain /* dB */);
 	int (*set_gain_mode)(void *, int manual);
-} mirisdr_tuner_t;
+} fx2mirisdr_tuner_t;
 
-enum mirisdr_async_status {
-	mirisdr_INACTIVE = 0,
-	mirisdr_CANCELING,
-	mirisdr_RUNNING
+enum fx2mirisdr_async_status {
+	fx2mirisdr_INACTIVE = 0,
+	fx2mirisdr_CANCELING,
+	fx2mirisdr_RUNNING
 };
 
-struct mirisdr_dev {
+struct fx2mirisdr_dev {
 	libusb_context *ctx;
 	struct libusb_device_handle *devh;
 	uint32_t xfer_buf_num;
@@ -73,14 +73,14 @@ struct mirisdr_dev {
 	uint32_t xfer_buf_len;
 	struct libusb_transfer **xfer;
 	unsigned char **xfer_buf;
-	mirisdr_read_async_cb_t cb;
+	fx2mirisdr_read_async_cb_t cb;
 	void *cb_ctx;
-	enum mirisdr_async_status async_status;
+	enum fx2mirisdr_async_status async_status;
 	/* adc context */
 	uint32_t rate; /* Hz */
 	uint32_t adc_clock; /* Hz */
 	/* tuner context */
-	mirisdr_tuner_t *tuner;
+	fx2mirisdr_tuner_t *tuner;
 	uint32_t freq; /* Hz */
 	int gain; /* dB */
 	/* samples context */
@@ -88,13 +88,13 @@ struct mirisdr_dev {
 	uint32_t addr;
 };
 
-typedef struct mirisdr_dongle {
+typedef struct fx2mirisdr_dongle {
 	uint16_t vid;
 	uint16_t pid;
 	const char *name;
-} mirisdr_dongle_t;
+} fx2mirisdr_dongle_t;
 
-static mirisdr_dongle_t known_devices[] = {
+static fx2mirisdr_dongle_t known_devices[] = {
 	{ 0x1df7, 0x2500, "Mirics MSi2500 default (e.g. VTX3D card)" },
 	{ 0x04bb, 0x0537, "IO-DATA GV-TV100 stick" }
 };
@@ -148,13 +148,13 @@ int msi001_set_gain_mode(void *dev, int manual) {
 	return 0;
 }
 
-static mirisdr_tuner_t tuner = {
+static fx2mirisdr_tuner_t tuner = {
 	_msi001_init, msi001_exit,
 	msi001_set_freq,
 	msi001_set_bw, msi001_set_gain, msi001_set_gain_mode
 };
 
-int msi2500_write_reg(mirisdr_dev_t *dev, uint8_t reg, uint32_t val)
+int msi2500_write_reg(fx2mirisdr_dev_t *dev, uint8_t reg, uint32_t val)
 {
 	uint16_t wValue = (val & 0xff) << 8 | reg;
 	uint16_t wIndex = (val >> 8) & 0xffff;
@@ -165,7 +165,7 @@ int msi2500_write_reg(mirisdr_dev_t *dev, uint8_t reg, uint32_t val)
 	return r;
 }
 
-void mirisdr_init_baseband(mirisdr_dev_t *dev)
+void fx2mirisdr_init_baseband(fx2mirisdr_dev_t *dev)
 {
 	/* TODO figure out what that does and why it's needed */
 	libusb_control_transfer(dev->devh, 0x42, 0x43, 0x0, 0x0, NULL, 0, CTRL_TIMEOUT);
@@ -189,7 +189,7 @@ void mirisdr_init_baseband(mirisdr_dev_t *dev)
 
 	// doesn't work yet
 //	fprintf(stderr, "setting fs\n");
-//	mirisdr_set_samp_rate(dev, 8000000);
+//	fx2mirisdr_set_samp_rate(dev, 8000000);
 
 	msi2500_write_reg(dev, 0x13, 0x006b46);
 	msi2500_write_reg(dev, 0x14, 0x0000f5);
@@ -209,7 +209,7 @@ void mirisdr_init_baseband(mirisdr_dev_t *dev)
 	msi2500_write_reg(dev, 0x09, 0x014281);
 }
 
-int mirisdr_deinit_baseband(mirisdr_dev_t *dev)
+int fx2mirisdr_deinit_baseband(fx2mirisdr_dev_t *dev)
 {
 	int r = 0;
 
@@ -226,7 +226,7 @@ int mirisdr_deinit_baseband(mirisdr_dev_t *dev)
 	return r;
 }
 
-int mirisdr_get_usb_strings(mirisdr_dev_t *dev, char *manufact, char *product,
+int fx2mirisdr_get_usb_strings(fx2mirisdr_dev_t *dev, char *manufact, char *product,
 			    char *serial)
 {
 	struct libusb_device_descriptor dd;
@@ -267,7 +267,7 @@ int mirisdr_get_usb_strings(mirisdr_dev_t *dev, char *manufact, char *product,
 	return 0;
 }
 
-int mirisdr_set_center_freq(mirisdr_dev_t *dev, uint32_t freq)
+int fx2mirisdr_set_center_freq(fx2mirisdr_dev_t *dev, uint32_t freq)
 {
 	int r = -2;
 
@@ -285,7 +285,7 @@ int mirisdr_set_center_freq(mirisdr_dev_t *dev, uint32_t freq)
 	return r;
 }
 
-uint32_t mirisdr_get_center_freq(mirisdr_dev_t *dev)
+uint32_t fx2mirisdr_get_center_freq(fx2mirisdr_dev_t *dev)
 {
 	if (!dev || !dev->tuner)
 		return 0;
@@ -293,7 +293,7 @@ uint32_t mirisdr_get_center_freq(mirisdr_dev_t *dev)
 	return dev->freq;
 }
 
-int mirisdr_get_tuner_gains(mirisdr_dev_t *dev, int *gains)
+int fx2mirisdr_get_tuner_gains(fx2mirisdr_dev_t *dev, int *gains)
 {
 	const int msi001_gains[] = { -10, 15, 40, 65, 90, 115, 140, 165, 190, 215,
 				  240, 290, 340, 420, 430, 450, 470, 490 };
@@ -312,7 +312,7 @@ int mirisdr_get_tuner_gains(mirisdr_dev_t *dev, int *gains)
 	}
 }
 
-int mirisdr_set_tuner_gain(mirisdr_dev_t *dev, int gain)
+int fx2mirisdr_set_tuner_gain(fx2mirisdr_dev_t *dev, int gain)
 {
 	int r = -2;
 
@@ -330,7 +330,7 @@ int mirisdr_set_tuner_gain(mirisdr_dev_t *dev, int gain)
 	return r;
 }
 
-int mirisdr_get_tuner_gain(mirisdr_dev_t *dev)
+int fx2mirisdr_get_tuner_gain(fx2mirisdr_dev_t *dev)
 {
 	if (!dev || !dev->tuner)
 		return 0;
@@ -338,7 +338,7 @@ int mirisdr_get_tuner_gain(mirisdr_dev_t *dev)
 	return dev->gain;
 }
 
-int mirisdr_set_tuner_gain_mode(mirisdr_dev_t *dev, int mode)
+int fx2mirisdr_set_tuner_gain_mode(fx2mirisdr_dev_t *dev, int mode)
 {
 	int r = -2;
 
@@ -351,27 +351,27 @@ int mirisdr_set_tuner_gain_mode(mirisdr_dev_t *dev, int mode)
 	return r;
 }
 
-int mirisdr_set_tuner_lna_gain(mirisdr_dev_t *dev, int gain)
+int fx2mirisdr_set_tuner_lna_gain(fx2mirisdr_dev_t *dev, int gain)
 {
 	return 0;
 }
 
-int mirisdr_set_tuner_mixer_gain(mirisdr_dev_t *dev, int gain)
+int fx2mirisdr_set_tuner_mixer_gain(fx2mirisdr_dev_t *dev, int gain)
 {
 	return 0;
 }
 
-int mirisdr_set_tuner_mixer_enh(mirisdr_dev_t *dev, int enh)
+int fx2mirisdr_set_tuner_mixer_enh(fx2mirisdr_dev_t *dev, int enh)
 {
 	return 0;
 }
 
-int mirisdr_set_tuner_if_gain(mirisdr_dev_t *dev, int stage, int gain)
+int fx2mirisdr_set_tuner_if_gain(fx2mirisdr_dev_t *dev, int stage, int gain)
 {
 	return 0;
 }
 
-int mirisdr_set_sample_rate(mirisdr_dev_t *dev, uint32_t samp_rate)
+int fx2mirisdr_set_sample_rate(fx2mirisdr_dev_t *dev, uint32_t samp_rate)
 {
 	int n;
 	int r = 0;
@@ -380,7 +380,7 @@ int mirisdr_set_sample_rate(mirisdr_dev_t *dev, uint32_t samp_rate)
 		return -1;
 
 	/* TODO */
-//	mirisdr_set_samp_rate(dev, samp_rate);
+//	fx2mirisdr_set_samp_rate(dev, samp_rate);
 
 	if (r >= 0) {
 		if (dev->tuner && dev->tuner->set_bw)
@@ -394,7 +394,7 @@ int mirisdr_set_sample_rate(mirisdr_dev_t *dev, uint32_t samp_rate)
 	return r;
 }
 
-uint32_t mirisdr_get_sample_rate(mirisdr_dev_t *dev)
+uint32_t fx2mirisdr_get_sample_rate(fx2mirisdr_dev_t *dev)
 {
 	if (!dev)
 		return 0;
@@ -402,12 +402,12 @@ uint32_t mirisdr_get_sample_rate(mirisdr_dev_t *dev)
 	return dev->rate;
 }
 
-static mirisdr_dongle_t *find_known_device(uint16_t vid, uint16_t pid)
+static fx2mirisdr_dongle_t *find_known_device(uint16_t vid, uint16_t pid)
 {
 	unsigned int i;
-	mirisdr_dongle_t *device = NULL;
+	fx2mirisdr_dongle_t *device = NULL;
 
-	for (i = 0; i < sizeof(known_devices)/sizeof(mirisdr_dongle_t); i++ ) {
+	for (i = 0; i < sizeof(known_devices)/sizeof(fx2mirisdr_dongle_t); i++ ) {
 		if (known_devices[i].vid == vid && known_devices[i].pid == pid) {
 			device = &known_devices[i];
 			break;
@@ -417,7 +417,7 @@ static mirisdr_dongle_t *find_known_device(uint16_t vid, uint16_t pid)
 	return device;
 }
 
-uint32_t mirisdr_get_device_count(void)
+uint32_t fx2mirisdr_get_device_count(void)
 {
 	int i;
 	libusb_context *ctx;
@@ -444,13 +444,13 @@ uint32_t mirisdr_get_device_count(void)
 	return device_count;
 }
 
-const char *mirisdr_get_device_name(uint32_t index)
+const char *fx2mirisdr_get_device_name(uint32_t index)
 {
 	int i;
 	libusb_context *ctx;
 	libusb_device **list;
 	struct libusb_device_descriptor dd;
-	mirisdr_dongle_t *device = NULL;
+	fx2mirisdr_dongle_t *device = NULL;
 	uint32_t device_count = 0;
 	ssize_t cnt;
 
@@ -483,7 +483,7 @@ const char *mirisdr_get_device_name(uint32_t index)
 		return "";
 }
 
-int mirisdr_get_device_usb_strings(uint32_t index, char *manufact,
+int fx2mirisdr_get_device_usb_strings(uint32_t index, char *manufact,
 				   char *product, char *serial)
 {
 	int r = -2;
@@ -491,7 +491,7 @@ int mirisdr_get_device_usb_strings(uint32_t index, char *manufact,
 	libusb_context *ctx;
 	libusb_device **list;
 	struct libusb_device_descriptor dd;
-	mirisdr_dev_t devt;
+	fx2mirisdr_dev_t devt;
 	uint32_t device_count = 0;
 	ssize_t cnt;
 
@@ -508,7 +508,7 @@ int mirisdr_get_device_usb_strings(uint32_t index, char *manufact,
 		if (index == device_count - 1) {
 			r = libusb_open(list[i], &devt.devh);
 			if (!r) {
-				r = mirisdr_get_usb_strings(&devt,
+				r = fx2mirisdr_get_usb_strings(&devt,
 							    manufact,
 							    product,
 							    serial);
@@ -525,22 +525,22 @@ int mirisdr_get_device_usb_strings(uint32_t index, char *manufact,
 	return r;
 }
 
-int mirisdr_open(mirisdr_dev_t **out_dev, uint32_t index)
+int fx2mirisdr_open(fx2mirisdr_dev_t **out_dev, uint32_t index)
 {
 	int r;
 	int i;
 	libusb_device **list;
-	mirisdr_dev_t *dev = NULL;
+	fx2mirisdr_dev_t *dev = NULL;
 	libusb_device *device = NULL;
 	uint32_t device_count = 0;
 	struct libusb_device_descriptor dd;
 	ssize_t cnt;
 
-	dev = malloc(sizeof(mirisdr_dev_t));
+	dev = malloc(sizeof(fx2mirisdr_dev_t));
 	if (NULL == dev)
 		return -ENOMEM;
 
-	memset(dev, 0, sizeof(mirisdr_dev_t));
+	memset(dev, 0, sizeof(fx2mirisdr_dev_t));
 
 	libusb_init(&dev->ctx);
 
@@ -582,7 +582,7 @@ int mirisdr_open(mirisdr_dev_t **out_dev, uint32_t index)
 
 	dev->adc_clock = DEF_ADC_FREQ;
 
-	mirisdr_init_baseband(dev);
+	fx2mirisdr_init_baseband(dev);
 
 	dev->tuner = &tuner; /* so far we have only one tuner */
 
@@ -606,12 +606,12 @@ err:
 	return r;
 }
 
-int mirisdr_close(mirisdr_dev_t *dev)
+int fx2mirisdr_close(fx2mirisdr_dev_t *dev)
 {
 	if (!dev)
 		return -1;
 
-	mirisdr_deinit_baseband(dev);
+	fx2mirisdr_deinit_baseband(dev);
 
 	libusb_release_interface(dev->devh, 0);
 	libusb_close(dev->devh);
@@ -623,7 +623,7 @@ int mirisdr_close(mirisdr_dev_t *dev)
 	return 0;
 }
 
-int mirisdr_reset_buffer(mirisdr_dev_t *dev)
+int fx2mirisdr_reset_buffer(fx2mirisdr_dev_t *dev)
 {
 	if (!dev)
 		return -1;
@@ -633,7 +633,7 @@ int mirisdr_reset_buffer(mirisdr_dev_t *dev)
 	return 0;
 }
 
-int mirisdr_read_sync(mirisdr_dev_t *dev, void *buf, int len, int *n_read)
+int fx2mirisdr_read_sync(fx2mirisdr_dev_t *dev, void *buf, int len, int *n_read)
 {
 	if (!dev)
 		return -1;
@@ -651,7 +651,7 @@ void hexdump(uint8_t *inbuf, int cnt)
 	printf("\n");
 }
 
-int mirisdr_convert_samples(mirisdr_dev_t *dev, unsigned char* inbuf, int16_t *outsamples, int length)
+int fx2mirisdr_convert_samples(fx2mirisdr_dev_t *dev, unsigned char* inbuf, int16_t *outsamples, int length)
 {
 	int i, j, k, l, block;
 	uint32_t offs;
@@ -765,7 +765,7 @@ static void LIBUSB_CALL _libusb_callback(struct libusb_transfer *xfer)
 {
 	int i, len, total_len = 0;
 	static unsigned char* iso_packet_buf;
-	mirisdr_dev_t *dev = (mirisdr_dev_t *)xfer->user_data;
+	fx2mirisdr_dev_t *dev = (fx2mirisdr_dev_t *)xfer->user_data;
 	int16_t outsamples[768 * 3 * 8];
 
 //	if (xfer->type == LIBUSB_TRANSFER_TYPE_ISOCHRONOUS) {
@@ -774,13 +774,13 @@ static void LIBUSB_CALL _libusb_callback(struct libusb_transfer *xfer)
 
 		if (pack->status != LIBUSB_TRANSFER_COMPLETED) {
 //			fprintf(stderr, "transfer status: %d\n", xfer->status);
-//			mirisdr_cancel_async(dev); /* abort async loop */
+//			fx2mirisdr_cancel_async(dev); /* abort async loop */
 		}
 
 		if (pack->actual_length > 0) {
 			iso_packet_buf =  libusb_get_iso_packet_buffer_simple(xfer, i);
 			if (iso_packet_buf) {
-				len = mirisdr_convert_samples(dev, iso_packet_buf, outsamples + total_len, pack->actual_length);
+				len = fx2mirisdr_convert_samples(dev, iso_packet_buf, outsamples + total_len, pack->actual_length);
 				total_len += len;
 			}
 //			if (pack->actual_length != 3072)
@@ -798,7 +798,7 @@ static void LIBUSB_CALL _libusb_callback(struct libusb_transfer *xfer)
 	}
 }
 
-static int _mirisdr_alloc_async_buffers(mirisdr_dev_t *dev)
+static int _fx2mirisdr_alloc_async_buffers(fx2mirisdr_dev_t *dev)
 {
 	unsigned int i;
 
@@ -825,7 +825,7 @@ static int _mirisdr_alloc_async_buffers(mirisdr_dev_t *dev)
 	return 0;
 }
 
-static int _mirisdr_free_async_buffers(mirisdr_dev_t *dev)
+static int _fx2mirisdr_free_async_buffers(fx2mirisdr_dev_t *dev)
 {
 	unsigned int i;
 
@@ -856,7 +856,7 @@ static int _mirisdr_free_async_buffers(mirisdr_dev_t *dev)
 	return 0;
 }
 
-int mirisdr_read_async(mirisdr_dev_t *dev, mirisdr_read_async_cb_t cb, void *ctx,
+int fx2mirisdr_read_async(fx2mirisdr_dev_t *dev, fx2mirisdr_read_async_cb_t cb, void *ctx,
 		       uint32_t buf_num, uint32_t buf_len)
 {
 	unsigned int i;
@@ -881,7 +881,7 @@ int mirisdr_read_async(mirisdr_dev_t *dev, mirisdr_read_async_cb_t cb, void *ctx
 //	else
 		dev->xfer_buf_len = DEFAULT_BUF_LENGTH;
 
-	_mirisdr_alloc_async_buffers(dev);
+	_fx2mirisdr_alloc_async_buffers(dev);
 
 	for(i = 0; i < dev->xfer_buf_num; ++i) {
 		libusb_fill_iso_transfer(dev->xfer[i],
@@ -900,9 +900,9 @@ int mirisdr_read_async(mirisdr_dev_t *dev, mirisdr_read_async_cb_t cb, void *ctx
 		libusb_submit_transfer(dev->xfer[i]);
 	}
 
-	dev->async_status = mirisdr_RUNNING;
+	dev->async_status = fx2mirisdr_RUNNING;
 
-	while (mirisdr_INACTIVE != dev->async_status) {
+	while (fx2mirisdr_INACTIVE != dev->async_status) {
 		r = libusb_handle_events_timeout(dev->ctx, &tv);
 		if (r < 0) {
 			fprintf(stderr, "handle_events returned: %d\n", r);
@@ -911,8 +911,8 @@ int mirisdr_read_async(mirisdr_dev_t *dev, mirisdr_read_async_cb_t cb, void *ctx
 			break;
 		}
 
-		if (mirisdr_CANCELING == dev->async_status) {
-			dev->async_status = mirisdr_INACTIVE;
+		if (fx2mirisdr_CANCELING == dev->async_status) {
+			dev->async_status = fx2mirisdr_INACTIVE;
 
 			if (!dev->xfer)
 				break;
@@ -923,37 +923,37 @@ int mirisdr_read_async(mirisdr_dev_t *dev, mirisdr_read_async_cb_t cb, void *ctx
 
 				if (dev->xfer[i]->status == LIBUSB_TRANSFER_COMPLETED) {
 					libusb_cancel_transfer(dev->xfer[i]);
-					dev->async_status = mirisdr_CANCELING;
+					dev->async_status = fx2mirisdr_CANCELING;
 				}
 			}
 
-			if (mirisdr_INACTIVE == dev->async_status)
+			if (fx2mirisdr_INACTIVE == dev->async_status)
 				break;
 		}
 	}
 
-	_mirisdr_free_async_buffers(dev);
+	_fx2mirisdr_free_async_buffers(dev);
 
 	return r;
 }
 
-int mirisdr_cancel_async(mirisdr_dev_t *dev)
+int fx2mirisdr_cancel_async(fx2mirisdr_dev_t *dev)
 {
 	if (!dev)
 		return -1;
 
-	if (mirisdr_RUNNING == dev->async_status) {
-		dev->async_status = mirisdr_CANCELING;
+	if (fx2mirisdr_RUNNING == dev->async_status) {
+		dev->async_status = fx2mirisdr_CANCELING;
 		return 0;
 	}
 
 	return -2;
 }
 
-int mirisdr_reg_write_fn(void *dev, uint8_t reg, uint32_t val)
+int fx2mirisdr_reg_write_fn(void *dev, uint8_t reg, uint32_t val)
 {
 	if (dev)
-		return msi2500_write_reg(((mirisdr_dev_t *)dev), reg, val);
+		return msi2500_write_reg(((fx2mirisdr_dev_t *)dev), reg, val);
 
 	return -1;
 }

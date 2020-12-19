@@ -21,7 +21,7 @@
 # Project setup
 ########################################################################
 cmake_minimum_required(VERSION 2.6)
-project(mirisdr C)
+project(fx2mirisdr C)
 
 #select the release build type by default to get optimization flags
 if(NOT CMAKE_BUILD_TYPE)
@@ -97,21 +97,21 @@ add_subdirectory(src)
 # Create Pkg Config File
 ########################################################################
 FOREACH(inc ${LIBUSB_INCLUDE_DIR})
-    LIST(APPEND MIRISDR_PC_CFLAGS "-I${inc}")
+    LIST(APPEND FX2MIRISDR_PC_CFLAGS "-I${inc}")
 ENDFOREACH(inc)
 
 FOREACH(lib ${LIBUSB_LIBRARY_DIRS})
-    LIST(APPEND MIRISDR_PC_LIBS "-L${lib}")
+    LIST(APPEND FX2MIRISDR_PC_LIBS "-L${lib}")
 ENDFOREACH(lib)
 
 # use space-separation format for the pc file
-STRING(REPLACE ";" " " MIRISDR_PC_CFLAGS "${MIRISDR_PC_CFLAGS}")
-STRING(REPLACE ";" " " MIRISDR_PC_LIBS "${MIRISDR_PC_LIBS}")
+STRING(REPLACE ";" " " FX2MIRISDR_PC_CFLAGS "${FX2MIRISDR_PC_CFLAGS}")
+STRING(REPLACE ";" " " FX2MIRISDR_PC_LIBS "${FX2MIRISDR_PC_LIBS}")
 
 # unset these vars to avoid hard-coded paths to cross environment
 IF(CMAKE_CROSSCOMPILING)
-    UNSET(MIRISDR_PC_CFLAGS)
-    UNSET(MIRISDR_PC_LIBS)
+    UNSET(FX2MIRISDR_PC_CFLAGS)
+    UNSET(FX2MIRISDR_PC_LIBS)
 ENDIF(CMAKE_CROSSCOMPILING)
 
 set(prefix ${CMAKE_INSTALL_PREFIX})
@@ -120,12 +120,12 @@ set(libdir \${exec_prefix}/lib)
 set(includedir \${prefix}/include)
 
 CONFIGURE_FILE(
-    ${CMAKE_CURRENT_SOURCE_DIR}/libmirisdr.pc.in
-    ${CMAKE_CURRENT_BINARY_DIR}/libmirisdr.pc
+    ${CMAKE_CURRENT_SOURCE_DIR}/libfx2mirisdr.pc.in
+    ${CMAKE_CURRENT_BINARY_DIR}/libfx2mirisdr.pc
 @ONLY)
 
 INSTALL(
-    FILES ${CMAKE_CURRENT_BINARY_DIR}/libmirisdr.pc
+    FILES ${CMAKE_CURRENT_BINARY_DIR}/libfx2mirisdr.pc
     DESTINATION lib/pkgconfig
 )
 

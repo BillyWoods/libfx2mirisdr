@@ -18,7 +18,7 @@
  */
 
 #include "tuner_msi001.h"
-#include "mirisdr_reg.h"
+#include "fx2mirisdr_reg.h"
 
 #include <stdint.h>
 #include <stdio.h>
@@ -44,7 +44,7 @@ static const struct iffreqs_ iffreqs[] = {
 
 static void writereg(void *dev, uint8_t reg, uint32_t val) {
 	fprintf(stderr, "%u 0x%08x\n", reg, val);
-	mirisdr_reg_write_fn(dev, 0x09, val);
+	fx2mirisdr_reg_write_fn(dev, 0x09, val);
 }
 
 static int set_reg0(void *dev, struct state* s) {

@@ -5,12 +5,12 @@ LIBVERSION=0:0:0
 INCLUDES = $(all_includes) -I$(top_srcdir)/include
 AM_CFLAGS = ${CFLAGS} -fPIC ${SYMBOL_VISIBILITY}
 
-lib_LTLIBRARIES = libmirisdr.la
+lib_LTLIBRARIES = libfx2mirisdr.la
 
-libmirisdr_la_SOURCES = libmirisdr.c tuner_msi001.c
-libmirisdr_la_LDFLAGS = -version-info $(LIBVERSION)
+libfx2mirisdr_la_SOURCES = libfx2mirisdr.c tuner_msi001.c
+libfx2mirisdr_la_LDFLAGS = -version-info $(LIBVERSION)
 
-bin_PROGRAMS         = miri_sdr
+bin_PROGRAMS         = fx2miri_sdr
 
-miri_sdr_SOURCES     = miri_sdr.c
-miri_sdr_LDADD       = libmirisdr.la
+fx2miri_sdr_SOURCES     = fx2miri_sdr.c
+fx2miri_sdr_LDADD       = libfx2mirisdr.la

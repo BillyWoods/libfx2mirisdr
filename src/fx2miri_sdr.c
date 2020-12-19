@@ -29,7 +29,7 @@
 #include <Windows.h>
 #endif
 
-#include "mirisdr.h"
+#include "fx2mirisdr.h"
 
 #define DEFAULT_SAMPLE_RATE		500000
 #define DEFAULT_ASYNC_BUF_NUMBER	32
@@ -38,13 +38,13 @@
 #define MAXIMAL_BUF_LENGTH		(256 * 16384)
 
 static int do_exit = 0;
-static mirisdr_dev_t *dev = NULL;
+static fx2mirisdr_dev_t *dev = NULL;
 
 void usage(void)
 {
 	#ifdef _WIN32
 	fprintf(stderr,
-		"Usage:\t miri_sdr.exe [device_index] [samplerate in kHz] "
+		"Usage:\t fx2miri_sdr.exe [device_index] [samplerate in kHz] "
 		"[gain] [frequency in Hz] [filename]\n");
 	#else
 	fprintf(stderr,
@@ -66,7 +66,7 @@ sighandler(int signum)
 	if (CTRL_C_EVENT == signum) {
 		fprintf(stderr, "Signal caught, exiting!\n");
 		do_exit = 1;
-		mirisdr_cancel_async(dev);
+		fx2mirisdr_cancel_async(dev);
 		return TRUE;
 	}
 	return FALSE;
@@ -76,16 +76,16 @@ static void sighandler(int signum)
 {
 	fprintf(stderr, "Signal caught, exiting!\n");
 	do_exit = 1;
-	mirisdr_cancel_async(dev);
+	fx2mirisdr_cancel_async(dev);
 }
 #endif
 
-static void mirisdr_callback(unsigned char *buf, uint32_t len, void *ctx)
+static void fx2mirisdr_callback(unsigned char *buf, uint32_t len, void *ctx)
 {
 	if (ctx) {
 		if (fwrite(buf, 1, len, (FILE*)ctx) != len) {
 			fprintf(stderr, "Short write, samples lost, exiting!\n");
-			mirisdr_cancel_async(dev);
+			fx2mirisdr_cancel_async(dev);
 		}
 	}
 }
@@ -166,7 +166,7 @@ int main(int argc, char **argv)
 
 	buffer = malloc(out_block_size * sizeof(uint8_t));
 
-	device_count = mirisdr_get_device_count();
+	device_count = fx2mirisdr_get_device_count();
 	if (!device_count) {
 		fprintf(stderr, "No supported devices found.\n");
 		exit(1);
@@ -174,17 +174,17 @@ int main(int argc, char **argv)
 
 	fprintf(stderr, "Found %d device(s):\n", device_count);
 	for (i = 0; i < device_count; i++) {
-		mirisdr_get_device_usb_strings(i, vendor, product, serial);
+		fx2mirisdr_get_device_usb_strings(i, vendor, product, serial);
 		fprintf(stderr, "  %d:  %s, %s, SN: %s\n", i, vendor, product, serial);
 	}
 	fprintf(stderr, "\n");
 
 	fprintf(stderr, "Using device %d: %s\n",
-		dev_index, mirisdr_get_device_name(dev_index));
+		dev_index, fx2mirisdr_get_device_name(dev_index));
 
-	r = mirisdr_open(&dev, dev_index);
+	r = fx2mirisdr_open(&dev, dev_index);
 	if (r < 0) {
-		fprintf(stderr, "Failed to open mirisdr device #%d.\n", dev_index);
+		fprintf(stderr, "Failed to open fx2mirisdr device #%d.\n", dev_index);
 		exit(1);
 	}
 #ifndef _WIN32
@@ -198,31 +198,31 @@ int main(int argc, char **argv)
 #else
 	SetConsoleCtrlHandler( (PHANDLER_ROUTINE) sighandler, TRUE );
 #endif
-	count = mirisdr_get_tuner_gains(dev, NULL);
+	count = fx2mirisdr_get_tuner_gains(dev, NULL);
 	fprintf(stderr, "Supported gain values (%d): ", count);
 
-	count = mirisdr_get_tuner_gains(dev, gains);
+	count = fx2mirisdr_get_tuner_gains(dev, gains);
 	for (i = 0; i < count; i++)
 		fprintf(stderr, "%.1f ", gains[i] / 10.0);
 	fprintf(stderr, "\n");
 
-	r = mirisdr_get_usb_strings(dev, vendor, product, serial);
+	r = fx2mirisdr_get_usb_strings(dev, vendor, product, serial);
 	if (r < 0)
 		fprintf(stderr, "WARNING: Failed to read usb strings.\n");
 	else
 		fprintf(stderr, "%s, %s: SN: %s\n", vendor, product, serial);
 
 	/* Set the sample rate */
-	r = mirisdr_set_sample_rate(dev, samp_rate);
+	r = fx2mirisdr_set_sample_rate(dev, samp_rate);
 	if (r < 0)
 		fprintf(stderr, "WARNING: Failed to set sample rate.\n");
 	else {
-		samp_rate = mirisdr_get_sample_rate(dev);
+		samp_rate = fx2mirisdr_get_sample_rate(dev);
 		fprintf(stderr, "Sample rate is set to %u Hz.\n", samp_rate);
 	}
 
 	/* Set the frequency */
-	r = mirisdr_set_center_freq(dev, frequency);
+	r = fx2mirisdr_set_center_freq(dev, frequency);
 	if (r < 0)
 		fprintf(stderr, "WARNING: Failed to set center freq.\n");
 	else
@@ -230,17 +230,17 @@ int main(int argc, char **argv)
 
 	if (0 == gain) {
 		 /* Enable automatic gain */
-		r = mirisdr_set_tuner_gain_mode(dev, 0);
+		r = fx2mirisdr_set_tuner_gain_mode(dev, 0);
 		if (r < 0)
 			fprintf(stderr, "WARNING: Failed to enable automatic gain.\n");
 	} else {
 		/* Enable manual gain */
-		r = mirisdr_set_tuner_gain_mode(dev, 1);
+		r = fx2mirisdr_set_tuner_gain_mode(dev, 1);
 		if (r < 0)
 			fprintf(stderr, "WARNING: Failed to enable manual gain.\n");
 
 		/* Set the tuner gain */
-		r = mirisdr_set_tuner_gain(dev, gain);
+		r = fx2mirisdr_set_tuner_gain(dev, gain);
 		if (r < 0)
 			fprintf(stderr, "WARNING: Failed to set tuner gain.\n");
 		else
@@ -258,14 +258,14 @@ int main(int argc, char **argv)
 	}
 
 	/* Reset endpoint before we start reading from it (mandatory) */
-	r = mirisdr_reset_buffer(dev);
+	r = fx2mirisdr_reset_buffer(dev);
 	if (r < 0)
 		fprintf(stderr, "WARNING: Failed to reset buffers.\n");
 
 	if (sync_mode) {
 		fprintf(stderr, "Reading samples in sync mode...\n");
 		while (!do_exit) {
-			r = mirisdr_read_sync(dev, buffer, out_block_size, &n_read);
+			r = fx2mirisdr_read_sync(dev, buffer, out_block_size, &n_read);
 			if (r < 0) {
 				fprintf(stderr, "WARNING: sync read failed.\n");
 				break;
@@ -283,7 +283,7 @@ int main(int argc, char **argv)
 		}
 	} else {
 		fprintf(stderr, "Reading samples in async mode...\n");
-		r = mirisdr_read_async(dev, mirisdr_callback, (void *)file,
+		r = fx2mirisdr_read_async(dev, fx2mirisdr_callback, (void *)file,
 				      DEFAULT_ASYNC_BUF_NUMBER, out_block_size);
 	}
 
@@ -295,7 +295,7 @@ int main(int argc, char **argv)
 	if (file != stdout)
 		fclose(file);
 
-	mirisdr_close(dev);
+	fx2mirisdr_close(dev);
 	free (buffer);
 out:
 	return r >= 0 ? r : -r;

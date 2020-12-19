@@ -21,7 +21,7 @@
 # Install public header files
 ########################################################################
 install(FILES
-    mirisdr.h
-    mirisdr_export.h
+    fx2mirisdr.h
+    fx2mirisdr_export.h
     DESTINATION include
 )

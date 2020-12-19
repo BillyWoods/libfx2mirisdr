@@ -15,8 +15,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __MIRISDR_EXPORT_H
-#define __MIRISDR_EXPORT_H
+#ifndef __FX2MIRISDR_EXPORT_H
+#define __FX2MIRISDR_EXPORT_H
 
 #if defined __GNUC__
 #  if __GNUC__ >= 4
@@ -34,13 +34,13 @@
 #  define __SDR_IMPORT
 #endif
 
-#ifndef mirisdr_STATIC
-#	ifdef mirisdr_EXPORTS
-#	define MIRISDR_API __SDR_EXPORT
+#ifndef fx2mirisdr_STATIC
+#	ifdef fx2mirisdr_EXPORTS
+#	define FX2MIRISDR_API __SDR_EXPORT
 #	else
-#	define MIRISDR_API __SDR_IMPORT
+#	define FX2MIRISDR_API __SDR_IMPORT
 #	endif
 #else
-#define MIRISDR_API
+#define FX2MIRISDR_API
 #endif
-#endif /* __MIRISDR_EXPORT_H */
+#endif /* __FX2MIRISDR_EXPORT_H */

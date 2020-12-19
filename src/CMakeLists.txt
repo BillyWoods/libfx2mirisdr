@@ -20,52 +20,52 @@
 ########################################################################
 # Setup library
 ########################################################################
-add_library(mirisdr_shared SHARED
-    libmirisdr.c
+add_library(fx2mirisdr_shared SHARED
+    libfx2mirisdr.c
     tuner_msi001.c
 )
 
-target_link_libraries(mirisdr_shared
+target_link_libraries(fx2mirisdr_shared
     ${LIBUSB_LIBRARIES}
 )
 
-set_target_properties(mirisdr_shared PROPERTIES DEFINE_SYMBOL "mirisdr_EXPORTS")
-set_target_properties(mirisdr_shared PROPERTIES OUTPUT_NAME mirisdr)
-set_target_properties(mirisdr_shared PROPERTIES SOVERSION ${MAJOR_VERSION})
-set_target_properties(mirisdr_shared PROPERTIES VERSION ${LIBVER})
+set_target_properties(fx2mirisdr_shared PROPERTIES DEFINE_SYMBOL "fx2mirisdr_EXPORTS")
+set_target_properties(fx2mirisdr_shared PROPERTIES OUTPUT_NAME fx2mirisdr)
+set_target_properties(fx2mirisdr_shared PROPERTIES SOVERSION ${MAJOR_VERSION})
+set_target_properties(fx2mirisdr_shared PROPERTIES VERSION ${LIBVER})
 
-add_library(mirisdr_static STATIC
-    libmirisdr.c
+add_library(fx2mirisdr_static STATIC
+    libfx2mirisdr.c
     tuner_msi001.c
 )
 
-target_link_libraries(mirisdr_static
+target_link_libraries(fx2mirisdr_static
     ${LIBUSB_LIBRARIES}
 )
 
-set_property(TARGET mirisdr_static APPEND PROPERTY COMPILE_DEFINITIONS "mirisdr_STATIC" )
+set_property(TARGET fx2mirisdr_static APPEND PROPERTY COMPILE_DEFINITIONS "fx2mirisdr_STATIC" )
 
 if(NOT WIN32)
 # Force same library filename for static and shared variants of the library
-set_target_properties(mirisdr_static PROPERTIES OUTPUT_NAME mirisdr)
+set_target_properties(fx2mirisdr_static PROPERTIES OUTPUT_NAME fx2mirisdr)
 endif()
 
 ########################################################################
 # Build utility
 ########################################################################
-add_executable(miri_sdr miri_sdr.c)
-target_link_libraries(miri_sdr mirisdr_static
+add_executable(fx2miri_sdr fx2miri_sdr.c)
+target_link_libraries(fx2miri_sdr fx2mirisdr_static
     ${LIBUSB_LIBRARIES}
 )
 
 if(WIN32)
-set_property(TARGET miri_sdr APPEND PROPERTY COMPILE_DEFINITIONS "mirisdr_STATIC" )
+set_property(TARGET fx2miri_sdr APPEND PROPERTY COMPILE_DEFINITIONS "fx2mirisdr_STATIC" )
 endif()
 
 ########################################################################
 # Install built library files & utilities
 ########################################################################
-install(TARGETS mirisdr_shared mirisdr_static miri_sdr
+install(TARGETS fx2mirisdr_shared fx2mirisdr_static fx2miri_sdr
     LIBRARY DESTINATION lib${LIB_SUFFIX} # .so/.dylib file
     ARCHIVE DESTINATION lib${LIB_SUFFIX} # .lib file
     RUNTIME DESTINATION bin              # .dll file
